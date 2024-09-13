@@ -1,0 +1,84 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+/* This file is for your main application CSS */
+
+.calendar {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    background-color: #ddd;
+  }
+  
+  .week {
+    display: contents;
+  }
+  
+  .day {
+    background-color: white;
+    aspect-ratio: 1;
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .day .date {
+    font-weight: bold;
+  }
+  
+  .day .mood {
+    margin-top: auto;
+    text-align: center;
+    padding: 2px;
+    border-radius: 4px;
+  }
+  
+  .day .mood.happy { background-color: #90EE90; }
+  .day .mood.sad { background-color: #ADD8E6; }
+  .day .mood.neutral { background-color: #F0E68C; }
+  
+  .empty {
+    background-color: #f0f0f0;
+  }
+
+.color-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.color-button {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.color-button:hover {
+  transform: scale(1.1);
+}
+
+.color-picker {
+  background-color: #f3f4f6;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.color-picker input[type="range"] {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.color-picker input[type="color"] {
+  width: 100%;
+  height: 40px;
+}

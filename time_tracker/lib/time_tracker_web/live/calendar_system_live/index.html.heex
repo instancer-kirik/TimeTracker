@@ -1,0 +1,37 @@
+<h1>Listing Calendar Systems</h1>
+
+<%= if @live_action in [:new, :edit] do %>
+  <.modal return_to={Routes.calendar_system_index_path(@socket, :index)}>
+    <.live_component
+      module={TimeTrackerWeb.CalendarSystemLive.FormComponent}
+      id={@calendar_system.id || :new}
+      title={@page_title}
+      action={@live_action}
+      calendar_system={@calendar_system}
+      
+      return_to={Routes.calendar_system_index_path(@socket, :index)}
+    />
+  </.modal>
+<% end %>
+
+<.table id="calendar_systems" rows={@calendar_systems}>
+  <:col :let={calendar_system} label="Name"><%= calendar_system.name %></:col>
+  <:col :let={calendar_system} label="Week length"><%= calendar_system.week_length %></:col>
+  <:col :let={calendar_system} label="Day one"><%= calendar_system.day_one %></:col>
+  <:action :let={calendar_system}>
+    <.link navigate={~p"/calendar_systems/#{calendar_system}"}>Show</.link>
+  </:action>
+  <:action :let={calendar_system}>
+    <.link patch={~p"/calendar_systems/#{calendar_system}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={calendar_system}>
+    <.link
+      phx-click={JS.push("delete", value: %{id: calendar_system.id})}
+      data-confirm="Are you sure?"
+    >
+      Delete
+    </.link>
+  </:action>
+</.table>
+
+<span><%= live_patch "New Calendar system", to: Routes.calendar_system_index_path(@socket, :new) %></span>

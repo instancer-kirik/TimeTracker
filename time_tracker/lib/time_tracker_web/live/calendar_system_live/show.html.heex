@@ -1,0 +1,182 @@
+<.header>
+  Calendar system <%= @calendar_system.id %>
+  <:subtitle>This is your current calendar system.</:subtitle>
+  <:actions>
+    <.link patch={~p"/calendar_systems/#{@calendar_system}/show/edit"} phx-click={JS.push_focus()}>
+      <.button>Edit calendar system</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.list>
+  <:item title="Name"><%= @calendar_system.name %></:item>
+  <:item title="Week length"><%= @calendar_system.week_length %></:item>
+  <:item title="Day one"><%= @calendar_system.day_one %></:item>
+  <:item title="Months">
+    <%= for month <- @calendar_system.months do %>
+      <%= month["name"] %> (<%= month["length"] %> <%= if month["length"] == 1, do: "day", else: "days" %>)<br>
+    <% end %>
+  </:item>
+</.list>
+
+<.header>
+  Your Calendar
+  <:subtitle>View and edit your day data</:subtitle>
+</.header>
+
+<div class="mb-4 flex items-center justify-between">
+  <form phx-change="change_view">
+    <select name="view">
+      <option value="year" selected={@view == :year}>Year</option>
+      <option value="month" selected={@view == :month}>Month</option>
+      <option value="week" selected={@view == :week}>Week</option>
+      <option value="day" selected={@view == :day}>Day</option>
+    </select>
+  </form>
+
+  <div class="flex items-center space-x-4">
+    <button phx-click="navigate" phx-value-direction="prev" class="px-2 py-1 bg-gray-200 rounded">
+      Previous
+    </button>
+    <span class="font-semibold">
+      <%= case @view do %>
+        <% :year -> %>
+          <%= @current_date.year %>
+        <% :month -> %>
+          <%= Calendar.month_name(@current_date.month, @calendar_system) %> <%= @current_date.year %>
+        <% :week -> %>
+          Week of <%= Date.beginning_of_week(@current_date, :monday) |> Calendar.date_to_string() %>
+        <% :day -> %>
+          <%= Calendar.date_to_string(@current_date) %>
+      <% end %>
+    </span>
+    <button phx-click="navigate" phx-value-direction="next" class="px-2 py-1 bg-gray-200 rounded">
+      Next
+    </button>
+  </div>
+
+  <form phx-change="change_date">
+    <input type="date" name="date" value={Date.to_iso8601(@current_date)} />
+  </form>
+</div>
+
+<div class="calendar">
+  <%= case @view do %>
+    <% :year -> %>
+      <div class="grid grid-cols-3 gap-4">
+        <%= for {month, index} <- Enum.with_index(get_calendar_data(@calendar_system, @current_date, :year), 1) do %>
+          <div class="month">
+            <h3><%= Calendar.month_name(index, @calendar_system) %></h3>
+            <div class={"grid grid-cols-#{@calendar_system.week_length} gap-1"}>
+              <%= for day <- month do %>
+                <div class={"day-cell #{if day.current_month, do: 'current-month', else: 'other-month'}"} 
+                     phx-click="edit_day" 
+                     phx-value-date={day.date}>
+                  <span class="date"><%= day.day %></span>
+                  <%= if day_data = get_day_data(@day_datas, day.date) do %>
+                    <div class={"mood #{mood_color(day_data)}"}></div>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% :month -> %>
+      <div class={"grid grid-cols-#{@calendar_system.week_length} gap-1"}>
+        <%= for day <- get_calendar_data(@calendar_system, @current_date, :month) do %>
+          <div class={"day-cell #{if day.current_month, do: 'current-month', else: 'other-month'}"} 
+               phx-click="edit_day" 
+               phx-value-date={day.date}>
+            <span class="date"><%= day.day %></span>
+            <%= if day_data = get_day_data(@day_datas, day.date) do %>
+              <div class={"mood #{mood_color(day_data)}"}><%= day_data.mood %></div>
+              <div class="notes"><%= truncate(day_data.notes, 30) %></div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% :week -> %>
+      <div class="grid grid-cols-7 gap-1">
+        <%= for day <- get_calendar_data(@calendar_system, @current_date, :week) do %>
+          <div class={"day-cell #{if day.current_month, do: 'current-month', else: 'other-month'}"} 
+               phx-click="edit_day" 
+               phx-value-date={day.date}>
+            <span class="date"><%= Calendar.day_name(day.date, @calendar_system) %>, <%= day.day %></span>
+            <%= if day_data = get_day_data(@day_datas, day.date) do %>
+              <div class={"mood #{mood_color(day_data)}"}><%= day_data.mood %></div>
+              <div class="notes"><%= day_data.notes %></div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% :day -> %>
+      <% [day] = get_calendar_data(@calendar_system, @current_date, :day) %>
+      <div class="day-view">
+        <h2><%= Calendar.day_name(@current_date, @calendar_system) %>, <%= Calendar.month_name(@current_date.month, @calendar_system) %> <%= @current_date.day %>, <%= @current_date.year %></h2>
+        <%= if day_data = get_day_data(@day_datas, day.date) do %>
+          <div class={"mood #{mood_color(day_data)}"}><%= day_data.mood %></div>
+          <div class="notes"><%= day_data.notes %></div>
+        <% else %>
+          <p>No data for this day</p>
+        <% end %>
+        <button phx-click="edit_day" phx-value-date={day.date}>Edit Day Data</button>
+      </div>
+  <% end %>
+</div>
+
+<.modal :if={@show_modal} id="day-data-modal" show on_cancel={JS.push("close_modal")}>
+  <.header>
+    <%= if @editing_day_data.id, do: "Edit Day Data", else: "New Day Data" %>
+  </.header>
+
+  <.simple_form for={@form} phx-submit="save_day_data">
+    <.input field={@form[:date]} type="date" label="Date" value={@editing_day_data.date} />
+    <.input field={@form[:mood]} type="text" label="Mood" value={@editing_day_data.mood} />
+    <.input field={@form[:notes]} type="textarea" label="Notes" value={@editing_day_data.notes} />
+    <:actions>
+      <.button>Save</.button>
+    </:actions>
+  </.simple_form>
+</.modal>
+
+<.header>
+  Example Year Calendar
+  <:subtitle>This is how your calendar system looks for a full year</:subtitle>
+  <:actions>
+    <.button phx-click="fill_day_data" disabled={@day_data_filled}>
+      <%= if @day_data_filled, do: "Day Data Filled", else: "Fill with Sample Day Data" %>
+    </.button>
+  </:actions>
+</.header>
+
+<div class="example-year-calendar grid grid-cols-3 gap-4">
+  <%= for {month_index, month} <- Enum.with_index(@example_year) do %>
+    <div class="month-calendar">
+      <h3 class="text-lg font-semibold mb-2"><%= Enum.at(@calendar_system.months, month_index)["name"] %></h3>
+      <div class="grid grid-cols-{ @calendar_system.week_length } gap-1">
+        <%= for {date, {_, {week, day}}, day_data} <- month do %>
+          <div class={"p-1 text-center #{mood_color(day_data)}"}>
+            <%= date.day %>
+            <%= if @day_data_filled do %>
+              <div class="text-xxs"><%= day_data.mood %></div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<.back navigate={~p"/calendar_systems"}>Back to calendar systems</.back>
+
+<.modal :if={@live_action == :edit} id="calendar_system-modal" show on_cancel={JS.patch(~p"/calendar_systems/#{@calendar_system}")}>
+  <.live_component
+    module={TimeTrackerWeb.CalendarSystemLive.FormComponent}
+    id={@calendar_system.id}
+    title={@page_title}
+    action={@live_action}
+    calendar_system={@calendar_system}
+    patch={~p"/calendar_systems/#{@calendar_system}"}
+  />
+</.modal>

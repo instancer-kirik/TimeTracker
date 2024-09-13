@@ -1,0 +1,28 @@
+<.header>
+  Day data <%= @day_data.id %>
+  <:subtitle>This is a day_data record from your database.</:subtitle>
+  <:actions>
+    <.link patch={~p"/day_datas/#{@day_data}/show/edit"} phx-click={JS.push_focus()}>
+      <.button>Edit day_data</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.list>
+  <:item title="Date"><%= @day_data.date %></:item>
+  <:item title="Mood"><%= @day_data.mood %></:item>
+  <:item title="Notes"><%= @day_data.notes %></:item>
+</.list>
+
+<.back navigate={~p"/day_datas"}>Back to day_datas</.back>
+
+<.modal :if={@live_action == :edit} id="day_data-modal" show on_cancel={JS.patch(~p"/day_datas/#{@day_data}")}>
+  <.live_component
+    module={TimeTrackerWeb.DayDataLive.FormComponent}
+    id={@day_data.id}
+    title={@page_title}
+    action={@live_action}
+    day_data={@day_data}
+    patch={~p"/day_datas/#{@day_data}"}
+  />
+</.modal>

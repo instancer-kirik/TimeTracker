@@ -1,0 +1,48 @@
+<.header>
+  Listing Day datas
+  <:actions>
+    <.link patch={~p"/day_datas/new"}>
+      <.button>New Day data</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.table
+  id="day_datas"
+  rows={@streams.day_datas}
+  row_click={fn {_id, day_data} -> JS.navigate(~p"/day_datas/#{day_data}") end}
+>
+  <:col :let={{_id, day_data}} label="Date"><%= day_data.date %></:col>
+  <:col :let={{_id, day_data}} label="Mood"><%= day_data.mood %></:col>
+  <:col :let={{_id, day_data}} label="Notes"><%= day_data.notes %></:col>
+  <:action :let={{_id, day_data}}>
+    <div class="sr-only">
+      <.link navigate={~p"/day_datas/#{day_data}"}>Show</.link>
+    </div>
+    <.link patch={~p"/day_datas/#{day_data}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={{id, day_data}}>
+    <.link
+      phx-click={JS.push("delete", value: %{id: day_data.id}) |> hide("##{id}")}
+      data-confirm="Are you sure?"
+    >
+      Delete
+    </.link>
+  </:action>
+</.table>
+
+<.modal :if={@live_action in [:new, :edit]} id="day_data-modal" show on_cancel={JS.patch(~p"/day_datas")}>
+  <.live_component
+      module={TimeTrackerWeb.DayDataLive.FormComponent}
+      id={@day_data.id || :new}
+      title={@page_title}
+      action={@live_action}
+      day_data={@day_data}
+      current_user={@current_user}
+      selected_color={@selected_color}
+      selected_palette_id={@selected_palette_id}  # Corrected key name
+      user_labels={@user_labels}
+      patch={~p"/day_datas"}
+    />
+  
+</.modal>
