@@ -17,7 +17,7 @@ defmodule TimeTrackerWeb.DayDataLive.FormComponent do
         phx-submit="save"
       >
         <.input field={@form[:date]} type="date" label="Date" />
-        <.input field={@form[:mood]} type="text" label="Mood"  />
+        <.input field={@form[:mood]} type="text" label="Mood" />
         <.input field={@form[:notes]} type="textarea" label="Notes" />
 
         <.live_component
@@ -26,13 +26,14 @@ defmodule TimeTrackerWeb.DayDataLive.FormComponent do
           day_data={@day_data}
           current_user={@current_user}
           user_labels={@user_labels}
+          applied_labels={@applied_labels}
           selected_color={@selected_color}
-          selected_palette_id = {@selected_palette_id}
+          selected_palette_id={@selected_palette_id}
           parent={@myself}
         />
 
         <div class="mt-6">
-          <.button type="submit" phx-disable-with="Saving...">Save</.button>
+          <.button type="submit" phx-disable-with="Saving..." >Save</.button>
         </div>
       </.form>
     </div>
@@ -62,29 +63,34 @@ defmodule TimeTrackerWeb.DayDataLive.FormComponent do
 
   @impl true
   def handle_event("save", %{"day_data" => day_data_params}, socket) do
-    changeset = Calendar.change_day_data(socket.assigns.day_data, day_data_params)
-
-    case changeset.valid? do
-      true ->
-        save_day_data(socket, socket.assigns.action, changeset.changes)
-
-      false ->
-        {:noreply, assign_form(socket, changeset)}  # Handle invalid changeset
-    end
-  end
-
-  @impl true
-  def handle_event("update_day_data", %{"day_data" => updated_day_data}, socket) do
-    {:noreply, assign(socket, :day_data, updated_day_data)}
+    save_day_data(socket, socket.assigns.action, day_data_params)
   end
 
   @impl true
   def handle_info({:update_day_data, updated_day_data}, socket) do
-    changeset = Calendar.change_day_data(updated_day_data)
-    {:noreply, socket |> assign(:day_data, updated_day_data) |> assign_form(changeset)}
+    # Merge the updated day_data with the current form data
+    current_form_data = socket.assigns.form.data
+
+    merged_day_data = %{
+      current_form_data |
+      label_colors: updated_day_data.label_colors,
+      date: current_form_data.date || updated_day_data.date,
+      mood: current_form_data.mood || updated_day_data.mood,
+      notes: current_form_data.notes || updated_day_data.notes
+    }
+
+    changeset = Calendar.change_day_data(merged_day_data)
+
+    {:noreply,
+     socket
+     |> assign(:day_data, merged_day_data)
+     |> assign(:changeset, changeset)
+     |> assign_form(changeset)}
   end
 
   defp save_day_data(socket, :edit, day_data_params) do
+    IO.inspect(day_data_params, label: "Params in save_day_data")
+
     case Calendar.update_day_data(socket.assigns.day_data, day_data_params) do
       {:ok, day_data} ->
         notify_parent({:saved, day_data})
@@ -95,7 +101,7 @@ defmodule TimeTrackerWeb.DayDataLive.FormComponent do
          |> push_patch(to: socket.assigns.patch)}
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        {:noreply, assign_form(socket, changeset)}  # Handle error case
+        {:noreply, assign_form(socket, changeset)}
     end
   end
 
@@ -110,7 +116,7 @@ defmodule TimeTrackerWeb.DayDataLive.FormComponent do
          |> push_patch(to: socket.assigns.patch)}
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        {:noreply, assign_form(socket, changeset)}  # Handle error case
+        {:noreply, assign_form(socket, changeset)}
     end
   end
 

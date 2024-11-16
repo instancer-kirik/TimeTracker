@@ -23,6 +23,11 @@
     title={@page_title}
     action={@live_action}
     day_data={@day_data}
+    current_user={@current_user}
+    selected_color={@selected_color}
+    selected_palette_id={@selected_palette_id}
+    applied_labels={@applied_labels} 
+    user_labels={@user_labels}
     patch={~p"/day_datas/#{@day_data}"}
-  />
+  /> 
 </.modal>

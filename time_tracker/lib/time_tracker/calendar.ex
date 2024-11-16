@@ -10,6 +10,7 @@ defmodule TimeTracker.Calendar do
   alias TimeTracker.Calendar.CalendarSystem
   alias TimeTracker.Calendar.Event
   alias TimeTracker.Calendar.UserLabel
+  alias TimeTracker.Calendar.DailyReminder
 
   # DayData functions
   def list_user_day_datas(user_id) do
@@ -107,6 +108,7 @@ defmodule TimeTracker.Calendar do
   Returns an `%Ecto.Changeset{}` for tracking day_data changes.
   """
   def change_day_data(%DayData{} = day_data, attrs \\ %{}) do
+    #attrs = Map.put(attrs, :user_id, day_data.user_id)  # Ensure user_id is included
     DayData.changeset(day_data, attrs)
   end
   def create_user_label(user, attrs \\ %{}) do
@@ -519,16 +521,7 @@ defmodule TimeTracker.Calendar do
     label = Repo.get(UserLabel, label_id)
     Repo.delete(label)
   end
-  def create_day_data_with_labels(attrs, user) do
-    label_ids = attrs["label_ids"] || []
-    labels = Repo.all(from l in UserLabel, where: l.id in ^label_ids)
-
-    %DayData{}
-    |> DayData.changeset(attrs)
-    |> Ecto.Changeset.put_assoc(:user, user)
-    |> Ecto.Changeset.put_assoc(:labels, labels)
-    |> Repo.insert()
-  end
+ T
   defp get_labels_from_ids(label_ids) do
     UserLabel
     |> where([l], l.id in ^label_ids)
@@ -541,5 +534,58 @@ defmodule TimeTracker.Calendar do
     |> Ecto.Changeset.put_assoc(:user, user)
     |> Ecto.Changeset.put_assoc(:labels, get_labels_from_ids(attrs["label_ids"] || []))
     |> Repo.update()
+  end
+
+  @doc """
+  Creates a daily reminder.
+  """
+  def create_daily_reminder(attrs \\ %{}) do
+    %DailyReminder{}
+    |> DailyReminder.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Returns daily reminders for a specific user and day of week.
+  """
+  def get_daily_reminders(user_id, day_of_week, calendar_system_id) do
+    DailyReminder
+    |> where([r], r.user_id == ^user_id)
+    |> where([r], ^day_of_week in r.days_of_week)
+    |> where([r], r.calendar_system_id == ^calendar_system_id)
+    |> where([r], r.active == true)
+    |> order_by([r], r.time_of_day)
+    |> Repo.all()
+  end
+
+  @doc """
+  Updates a daily reminder.
+  """
+  def update_daily_reminder(%DailyReminder{} = reminder, attrs) do
+    reminder
+    |> DailyReminder.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a daily reminder.
+  """
+  def delete_daily_reminder(%DailyReminder{} = reminder) do
+    Repo.delete(reminder)
+  end
+
+  def get_user_reminders(user_id) do
+    DailyReminder
+    |> where(user_id: ^user_id)
+    |> order_by([r], [r.time_of_day, r.title])
+    |> Repo.all()
+  end
+
+  def get_daily_reminder!(id) do
+    Repo.get!(DailyReminder, id)
+  end
+
+  def change_daily_reminder(%DailyReminder{} = reminder, attrs \\ %{}) do
+    DailyReminder.changeset(reminder, attrs)
   end
 end

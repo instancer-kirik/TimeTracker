@@ -16,6 +16,15 @@ defmodule TimeTrackerWeb.CalendarLive.CalendarComponent do
               <div class="mood"><%= day_data.mood %></div>
               <div class="notes"><%= truncate(day_data.notes, 30) %></div>
             <% end %>
+            
+            <% date = Date.new!(@year, @month, day) %>
+            <% day_of_week = Calendar.day_of_week(date, @calendar_system) %>
+            <%= for reminder <- get_daily_reminders(@user.id, day_of_week, @calendar_system.id) do %>
+              <div class="reminder" title={reminder.description}>
+                <span class="reminder-time"><%= format_time(reminder.time_of_day) %></span>
+                <span class="reminder-title"><%= truncate(reminder.title, 20) %></span>
+              </div>
+            <% end %>
           </div>
         <% end %>
       </div>
@@ -49,5 +58,9 @@ defmodule TimeTrackerWeb.CalendarLive.CalendarComponent do
     else
       string
     end
+  end
+
+  defp format_time(%Time{} = time) do
+    Calendar.strftime(time, "%I:%M %p")
   end
 end
